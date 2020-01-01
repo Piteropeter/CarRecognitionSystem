@@ -1,0 +1,8 @@
+              precision    recall  f1-score   support
+
+   chevrolet       0.78      0.67      0.72     11127
+        ford       0.73      0.83      0.78     12335
+
+    accuracy                           0.75     23462
+   macro avg       0.76      0.75      0.75     23462
+weighted avg       0.76      0.75      0.75     23462

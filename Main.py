@@ -43,8 +43,8 @@ file_scan_start = time.time()
 # r=root, d=directories, f = files
 for r, d, f in os.walk("VMMRdb/"):
     for file in f:
-        # if '.jpg' not in file:
-        files.append(os.path.join(r, file))
+        if '.jpg' in file:
+            files.append(os.path.join(r, file))
 
     for directory in d:
         directories.append(directory)
@@ -72,6 +72,9 @@ for image_path in image_paths:
     image = cv2.imread(image_path)
     # image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE)).flatten()
     image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE))
+    # print(len(image[0][0]))
+    # if len(image[0][0]) > 3:
+    #     exit(0)
     data.append(image)
     directory = image_path.split('/')[-1]
     # print(directory)
@@ -108,6 +111,7 @@ labels = np.array(labels)
 print("[INFO] Dataset created!")
 print("[INFO]      Took " + str(round(time.time() - dataset_create, 2)) + " s")
 
+
 # class SmallVGGNet:
 #     @staticmethod
 #     def build(width, height, depth, classes):
@@ -128,6 +132,7 @@ print("[INFO]      Took " + str(round(time.time() - dataset_create, 2)) + " s")
 lb = LabelBinarizer()
 train_labels = lb.fit_transform(train_labels)
 test_labels = lb.transform(test_labels)
+
 print("[INFO] Creating model")
 network = models.Sequential()
 # network.add(layers.Dense(1024, activation='relu', input_shape=(IMAGE_SIZE * IMAGE_SIZE * 3,)))
@@ -138,7 +143,6 @@ network = models.Sequential()
 
 inputShape = (IMAGE_SIZE, IMAGE_SIZE, 3)
 chanDim = -1
-classes = 2
 # CONV => RELU => POOL layer set
 network.add(Conv2D(32, (3, 3), padding="same", input_shape=inputShape))
 network.add(Activation("relu"))
@@ -172,9 +176,8 @@ network.add(Dense(512))
 network.add(Activation("relu"))
 network.add(BatchNormalization())
 network.add(Dropout(0.5))
-
 # softmax classifier
-network.add(Dense(classes))
+network.add(Dense(len(lb.classes_)))
 network.add(Activation("softmax"))
 
 opt = SGD(lr=0.01)
@@ -182,11 +185,12 @@ opt = SGD(lr=0.01)
 #                 loss='categorical_crossentropy',
 #                 metrics=['accuracy'])
 network.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
-test_labels = to_categorical(test_labels)
-train_labels = to_categorical(train_labels)
+# test_labels = to_categorical(test_labels)
+# train_labels = to_categorical(train_labels)
 print("[INFO] Training network")
 network_training_start = time.time()
-# H = network.fit(train_images, train_labels, validation_data=(test_images, test_labels), epochs=5, batch_size=32)
+
+# H = network.fit(train_images, train_labels, validation_data=(test_images, test_labels), epochs=EPOCHS, batch_size=32)
 aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1,
                          height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
                          horizontal_flip=True, fill_mode="nearest")
@@ -213,8 +217,6 @@ N = np.arange(0, EPOCHS)
 plt.style.use("ggplot")
 plt.figure()
 
-# H = network.fit(train_images, train_labels, validation_data=(test_images, test_labels),
-#                 epochs=EPOCHS, batch_size=32)
 print(H.history)
 plt.plot(N, H.history["loss"], label="train_loss")
 plt.plot(N, H.history["val_loss"], label="val_loss")

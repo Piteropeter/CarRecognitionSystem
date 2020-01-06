@@ -5,32 +5,38 @@
 #rm -rf VMMRdb/honda*
 #rm -rf VMMRdb/nissan*
 #rm -rf VMMRdb/dodge*
+
+# ALL BRANDS UNDER 10000 PHOTOS
+
 #rm -rf VMMRdb/volkswagen*
 #rm -rf VMMRdb/jeep*
 #rm -rf VMMRdb/bmw*
 #rm -rf VMMRdb/hyundai*
-#rm -rf VMMRdb/chrysler*
-#rm -rf VMMRdb/gmc*
-#rm -rf VMMRdb/pontiac*
-#rm -rf VMMRdb/mazda*
-#rm -rf VMMRdb/mercedes*
-#rm -rf VMMRdb/acura*
-#rm -rf VMMRdb/kia*
-#rm -rf VMMRdb/cadillac*
-#rm -rf VMMRdb/mitsubishi*
-#rm -rf VMMRdb/subaru*
-#rm -rf VMMRdb/lexus*
-#rm -rf VMMRdb/audi*
-#rm -rf VMMRdb/mercury*
-#rm -rf VMMRdb/volvo*
-#rm -rf VMMRdb/buick*
-#rm -rf VMMRdb/infiniti*
-#rm -rf VMMRdb/lincoln*
-#rm -rf VMMRdb/saturn*
-#rm -rf VMMRdb/oldsmobile*
-#rm -rf VMMRdb/scion*
-#rm -rf VMMRdb/mini*
-#rm -rf VMMRdb/suzuki*
+rm -rf VMMRdb/chrysler*
+rm -rf VMMRdb/gmc*
+rm -rf VMMRdb/pontiac*
+rm -rf VMMRdb/mazda*
+rm -rf VMMRdb/mercedes*
+
+# ALL BRANDS UNDER 5000 PHOTOS
+
+rm -rf VMMRdb/acura*
+rm -rf VMMRdb/kia*
+rm -rf VMMRdb/cadillac*
+rm -rf VMMRdb/mitsubishi*
+rm -rf VMMRdb/subaru*
+rm -rf VMMRdb/lexus*
+rm -rf VMMRdb/audi*
+rm -rf VMMRdb/mercury*
+rm -rf VMMRdb/volvo*
+rm -rf VMMRdb/buick*
+rm -rf VMMRdb/infiniti*
+rm -rf VMMRdb/lincoln*
+rm -rf VMMRdb/saturn*
+rm -rf VMMRdb/oldsmobile*
+rm -rf VMMRdb/scion*
+rm -rf VMMRdb/mini*
+rm -rf VMMRdb/suzuki*
 
 # ALL BRANDS UNDER 1000 PHOTOS
 

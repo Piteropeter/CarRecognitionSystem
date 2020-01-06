@@ -106,3 +106,10 @@ venv.bak/
 # custom
 .idea/
 VMMRdb*
+backup*
+network
+label_binarizer
+trained_models*
+training_plot.png
+analyze_result.txt
+classification_report.txt

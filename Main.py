@@ -2,37 +2,23 @@ from keras_preprocessing.image import ImageDataGenerator
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras.optimizers import SGD
-from imutils import paths
 import matplotlib.pyplot as plt
 import numpy as np
-import argparse
 import random
 import pickle
 import time
 import cv2
 import os
-from keras.datasets import mnist
 from keras import models
 from keras.layers import Conv2D, BatchNormalization, MaxPooling2D
-from keras import layers
-from keras.utils import to_categorical
-from opt_einsum import paths
-import tensorflow as tf
-import keras as keras
 
-IMAGE_SIZE = 32
-EPOCHS = 10
-
-# config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
-# config.gpu_options.polling_inactive_delay_msecs = 100
-# tf.compat.v1.global_variables.polling_inactive_delay_msecs = 100
-# sess = tf.compat.v1.Session(config=config)
-# keras.backend.set_session(sess)
-# keras.backend.set_session()
-# tf.compat.v1.keras.backend.set_session(sess)
+SEED = 2019
+IMAGE_SIZE = 128
+BATCH_SIZE = 32
+EPOCHS = 50
+AUGMENTATION = 1
 
 files = []
 directories = []
@@ -40,11 +26,12 @@ brands = []
 
 print("[INFO] Initializing file scan")
 file_scan_start = time.time()
+
 # r=root, d=directories, f = files
 for r, d, f in os.walk("VMMRdb/"):
     for file in f:
-        if '.jpg' in file:
-            files.append(os.path.join(r, file))
+        # if '.jpg' in file:
+        files.append(os.path.join(r, file))
 
     for directory in d:
         directories.append(directory)
@@ -59,65 +46,33 @@ data = []
 labels = []
 print("[INFO] Shuffling images")
 image_paths = sorted(list(files))
-random.seed(2019)
+random.seed(SEED)
 random.shuffle(image_paths)
 print("[INFO] Loading data")
 file_load_start = time.time()
 
-# loop over the input images
 for image_path in image_paths:
-    # load the image, resize the image to be 32x32 pixels (ignoring
-    # aspect ratio), flatten the image into 32x32x3=3072 pixel image
-    # into a list, and store the image in the data list
     image = cv2.imread(image_path)
-    # image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE)).flatten()
     image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE))
-    # print(len(image[0][0]))
-    # if len(image[0][0]) > 3:
-    #     exit(0)
+    # image = cv2.normalize(image, norm_type=) TODO: ADD IMAGE NORMALIZATION (AND MAYBE HISTORGRAM EQUALIZATION)
     data.append(image)
     directory = image_path.split('/')[-1]
-    # print(directory)
     label = directory.split('_')[0]
-    # print(label)
     labels.append(label)
-
-# for label in labels:
-#     print(label)
 
 print("[INFO] Data loaded successfully!")
 print("[INFO]      Took " + str(round(time.time() - file_load_start, 2)) + " s")
 print("[INFO] Files loaded: ", len(data))
 print("[INFO] Brand count: ", len(brands))
 
-# exit(0)
-
-# for f in files:
-#     print(f)
-
-# for d in directories:
-#     print(d)
-#
-# for b in brands:
-#     print(b)
-
 # scale the raw pixel intensities to the range [0, 1]
 print("[INFO] Creating dataset")
 dataset_create = time.time()
-data = np.array(data, dtype="float") / 255.0
+data = np.array(data, dtype="float16") / 255.0
 labels = np.array(labels)
-(train_images, test_images, train_labels, test_labels) = train_test_split(data, labels, test_size=0.30,
-                                                                          random_state=2019)
+(train_images, test_images, train_labels, test_labels) = train_test_split(data, labels, test_size=0.10, random_state=SEED)
 print("[INFO] Dataset created!")
 print("[INFO]      Took " + str(round(time.time() - dataset_create, 2)) + " s")
-
-
-# class SmallVGGNet:
-#     @staticmethod
-#     def build(width, height, depth, classes):
-# initialize the model along with the input shape to be
-# "channels last" and the channels dimension itself
-
 
 # if we are using "channels first", update the input shape
 # and channels dimension
@@ -190,28 +145,28 @@ network.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accura
 print("[INFO] Training network")
 network_training_start = time.time()
 
-# H = network.fit(train_images, train_labels, validation_data=(test_images, test_labels), epochs=EPOCHS, batch_size=32)
-aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1,
-                         height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
-                         horizontal_flip=True, fill_mode="nearest")
-H = network.fit_generator(aug.flow(train_images, train_labels, batch_size=32),
-                          validation_data=(test_images, test_labels), steps_per_epoch=len(train_images), epochs=EPOCHS)
+if AUGMENTATION:
+    aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1,
+                             height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
+                             horizontal_flip=True, fill_mode="nearest")
+    H = network.fit_generator(aug.flow(train_images, train_labels, batch_size=BATCH_SIZE),
+                              validation_data=(test_images, test_labels), steps_per_epoch=len(train_images),
+                              epochs=EPOCHS)
+else:
+    H = network.fit(train_images, train_labels, validation_data=(test_images, test_labels), epochs=EPOCHS,
+                    batch_size=BATCH_SIZE)
+
 print("[INFO] Training completed!")
 print("[INFO]      Took " + str(round(time.time() - network_training_start, 2)) + " s")
-
-# test_loss, test_acc = network.evaluate(test_images, test_labels)
-# print('test_acc:', test_acc, 'test_loss', test_loss)
-
 print("[INFO] Evaluating network")
-predictions = network.predict(test_images, batch_size=32)
-print(predictions)
-print(len(predictions))
-print("DUPA1")
-print(test_labels)
-print(len(test_labels))
-print(classification_report(test_labels.argmax(axis=1),
-                            predictions.argmax(axis=1), target_names=lb.classes_))
-print("DUPA2")
+
+predictions = network.predict(test_images, batch_size=BATCH_SIZE)
+classification_report = classification_report(test_labels.argmax(axis=1), predictions.argmax(axis=1), target_names=lb.classes_)
+print(classification_report)
+file = open("classification_report.txt", "w")
+file.write(classification_report)
+file.close()
+
 # plot the training loss and accuracy
 N = np.arange(0, EPOCHS)
 plt.style.use("ggplot")
@@ -220,10 +175,24 @@ plt.figure()
 print(H.history)
 plt.plot(N, H.history["loss"], label="train_loss")
 plt.plot(N, H.history["val_loss"], label="val_loss")
-plt.plot(N, H.history["accuracy"], label="train_acc")
-plt.plot(N, H.history["val_accuracy"], label="val_acc")
-plt.title("Training Loss and Accuracy (Simple NN)")
-plt.xlabel("Epoch #")
+
+# To make it compatible with both tensorflow 1.x and 2.0
+try:
+    plt.plot(N, H.history["accuracy"], label="train_acc")
+    plt.plot(N, H.history["val_accuracy"], label="val_acc")
+except:
+    plt.plot(N, H.history["acc"], label="train_acc")
+    plt.plot(N, H.history["val_acc"], label="val_acc")
+
+plt.title("Training Loss and Accuracy")
+plt.xlabel("Epoch")
 plt.ylabel("Loss/Accuracy")
 plt.legend()
-plt.savefig("./wykres")
+plt.savefig("training_plot.png")
+print("[INFO] Saved results to training_plot.png and classification_report.txt")
+print("[INFO] Serializing network and label binarizer")
+network.save("./network")
+file = open("./label_binarizer", "wb")
+file.write(pickle.dumps(lb))
+file.close()
+print("[INFO] Serializing completed!")

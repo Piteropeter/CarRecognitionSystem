@@ -113,3 +113,6 @@ trained_models*
 training_plot.png
 analyze_result.txt
 classification_report.txt
+info.json
+model
+model.zip

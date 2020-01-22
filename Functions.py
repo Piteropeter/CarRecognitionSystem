@@ -12,16 +12,18 @@ from keras import models
 from keras.layers import Conv2D, BatchNormalization, MaxPooling2D
 import tensorflow as tf
 
+from keras.applications import ResNet50
+
 
 def disable_tf_warnings():
     tf.get_logger().setLevel('FATAL')
 
 
-def scan_files():
+def scan_files(path):
     files = []
     brands = []
     # r=root, d=directories, f = files
-    for r, d, f in os.walk("VMMRdb/"):
+    for r, d, f in os.walk(path):
         for file in f:
             files.append(os.path.join(r, file))
 
@@ -32,12 +34,12 @@ def scan_files():
     return files, brands
 
 
-def load_files(image_paths, IMAGE_SIZE):
+def load_files(image_paths, image_size):
     data = []
     labels = []
     for image_path in image_paths:
         image = cv2.imread(image_path)
-        image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE))
+        image = cv2.resize(image, (image_size, image_size))
         # image = cv2.normalize(image, norm_type=) TODO: ADD IMAGE NORMALIZATION (AND MAYBE HISTORGRAM EQUALIZATION)
         data.append(image)
         directory = image_path.split('/')[-1]
@@ -48,9 +50,9 @@ def load_files(image_paths, IMAGE_SIZE):
     return data, labels
 
 
-def create_model(IMAGE_SIZE, label_count):
+def create_model(image_size, label_count):
     network = models.Sequential()
-    inputShape = (IMAGE_SIZE, IMAGE_SIZE, 3)
+    inputShape = (image_size, image_size, 3)
     chanDim = -1
     # CONV => RELU => POOL layer set
     network.add(Conv2D(32, (3, 3), padding="same", input_shape=inputShape))
@@ -94,27 +96,33 @@ def create_model(IMAGE_SIZE, label_count):
     return network
 
 
-def train_network(network, train_images, test_images, train_labels, test_labels, AUGMENTATION, EPOCHS, BATCH_SIZE):
-    if AUGMENTATION:
-        aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1,
-                                 height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
-                                 horizontal_flip=True, fill_mode="nearest")
-        results = network.fit_generator(aug.flow(train_images, train_labels, batch_size=BATCH_SIZE),
+def create_model2(image_size, label_count):
+    network = ResNet50(include_top=True, weights=None, classes=label_count, input_shape=(image_size, image_size, 3))
+    network.compile(loss="categorical_crossentropy", optimizer=SGD(lr=0.01), metrics=["accuracy"])
+
+    return network
+
+
+def train_network(network, train_images, test_images, train_labels, test_labels, args):
+    if args['augmentation']:
+        aug = ImageDataGenerator(rotation_range=20, width_shift_range=0.1, height_shift_range=0.1, shear_range=0.2,
+                                 zoom_range=0.2, horizontal_flip=True, fill_mode="nearest")
+        results = network.fit_generator(aug.flow(train_images, train_labels, batch_size=args['batch_size']),
                                         validation_data=(test_images, test_labels), steps_per_epoch=len(train_images),
-                                        epochs=EPOCHS)
+                                        epochs=args['epochs'])
     else:
-        results = network.fit(train_images, train_labels, validation_data=(test_images, test_labels), epochs=EPOCHS,
-                              batch_size=BATCH_SIZE)
+        results = network.fit(train_images, train_labels, validation_data=(test_images, test_labels),
+                              epochs=args['epochs'], batch_size=args['batch_size'])
     return results
 
 
-def get_classification_report(network, label_binarizer, test_images, test_labels, BATCH_SIZE):
-    predictions = network.predict(test_images, batch_size=BATCH_SIZE)
+def get_classification_report(network, label_binarizer, test_images, test_labels, batch_size):
+    predictions = network.predict(test_images, batch_size=batch_size)
     return classification_report(test_labels.argmax(axis=1), predictions.argmax(axis=1),
                                  target_names=label_binarizer.classes_)
 
 
-def save_results(network, label_binarizer, results, report, SEED, IMAGE_SIZE, BATCH_SIZE, EPOCHS, AUGMENTATION):
+def save_results(network, label_binarizer, results, report, args):
     network.save("./model")
     file = open("./label_binarizer", "wb")
     file.write(pickle.dumps(label_binarizer))
@@ -124,7 +132,7 @@ def save_results(network, label_binarizer, results, report, SEED, IMAGE_SIZE, BA
     file.write(report)
     file.close()
 
-    N = np.arange(0, EPOCHS)
+    N = np.arange(0, args['epochs'])
     plt.style.use("ggplot")
     plt.figure()
     plt.plot(N, results.history["loss"], label="train_loss")
@@ -145,11 +153,11 @@ def save_results(network, label_binarizer, results, report, SEED, IMAGE_SIZE, BA
     plt.savefig("training_plot.png")
 
     file = open("./info.json", "w")
-    info_json = "{\"SEED\" : " + str(SEED) + \
-                ",\n\"IMAGE_SIZE\" : " + str(IMAGE_SIZE) + \
-                ",\n\"BATCH_SIZE\" : " + str(BATCH_SIZE) + \
-                ",\n\"EPOCHS\" : " + str(EPOCHS) + \
-                ",\n\"AUGMENTATION\" : " + str(AUGMENTATION) + "}"
+    info_json = "{\"SEED\" : " + str(args['seed']) + \
+                ",\n\"IMAGE_SIZE\" : " + str(args['image_size']) + \
+                ",\n\"BATCH_SIZE\" : " + str(args['batch_size']) + \
+                ",\n\"EPOCHS\" : " + str(args['epochs']) + \
+                ",\n\"AUGMENTATION\" : " + str(args['augmentation']) + "}"
     file.write(info_json)
     file.close()
 

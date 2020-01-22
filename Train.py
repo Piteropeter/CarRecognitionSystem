@@ -1,31 +1,35 @@
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
+import argparse
 import random
 import time
 
 from Functions import *
 
-SEED = 2019
-IMAGE_SIZE = 64
-BATCH_SIZE = 32
-EPOCHS = 5
-AUGMENTATION = 0
+argument_parser = argparse.ArgumentParser()
+argument_parser.add_argument("-p", "--path", type=str, default="VMMRdb/", help="Path to database with images")
+argument_parser.add_argument("-s", "--seed", type=int, default=2019, help="Seed for random generator")
+argument_parser.add_argument("-i", "--image_size", type=int, default=224, help="Scales images to n*n pixels")
+argument_parser.add_argument("-b", "--batch_size", type=int, default=32, help="Batch size")
+argument_parser.add_argument("-e", "--epochs", type=int, default=20, help="Epochs count")
+argument_parser.add_argument("-a", "--augmentation", type=int, default=1, help="Turn on/off augmentation")
+args = vars(argument_parser.parse_args())
 
 disable_tf_warnings()
 print("[INFO] Initializing file scan")
 file_scan_start = time.time()
-files, brands = scan_files()
+files, brands = scan_files(args['path'])
 print("[INFO] Scan complete")
 print("[INFO]      Took " + str(round(time.time() - file_scan_start, 2)) + " s")
 
 print("[INFO] Shuffling images")
 image_paths = sorted(list(files))
-random.seed(SEED)
+random.seed(args['seed'])
 random.shuffle(image_paths)
 
 print("[INFO] Loading data")
 file_load_start = time.time()
-data, labels = load_files(image_paths, IMAGE_SIZE)
+data, labels = load_files(image_paths, args['image_size'])
 print("[INFO] Data loaded successfully!")
 print("[INFO]      Took " + str(round(time.time() - file_load_start, 2)) + " s")
 
@@ -34,7 +38,8 @@ print("[INFO] Brand count: ", len(brands))
 
 print("[INFO] Creating dataset")
 dataset_create = time.time()
-train_images, test_images, train_labels, test_labels = train_test_split(data, labels, test_size=0.10, random_state=SEED)
+train_images, test_images, train_labels, test_labels = \
+    train_test_split(data, labels, test_size=0.10, random_state=args['seed'])
 print("[INFO] Dataset created!")
 print("[INFO]      Took " + str(round(time.time() - dataset_create, 2)) + " s")
 
@@ -43,24 +48,22 @@ train_labels = label_binarizer.fit_transform(train_labels)
 test_labels = label_binarizer.transform(test_labels)
 
 print("[INFO] Creating model")
-# test_labels = to_categorical(test_labels)
-# train_labels = to_categorical(train_labels)
-network = create_model(IMAGE_SIZE, len(label_binarizer.classes_))
+network = create_model2(args['image_size'], len(label_binarizer.classes_))
+
 print("[INFO] Training network")
 network_training_start = time.time()
-
-results = train_network(network, train_images, test_images, train_labels, test_labels, AUGMENTATION, EPOCHS, BATCH_SIZE)
+results = train_network(network, train_images, test_images, train_labels, test_labels, args)
 
 print("[INFO] Training completed!")
 print("[INFO]      Took " + str(round(time.time() - network_training_start, 2)) + " s")
 print("[INFO] Evaluating network")
 
-report = get_classification_report(network, label_binarizer, test_images, test_labels, BATCH_SIZE)
+report = get_classification_report(network, label_binarizer, test_images, test_labels, args['batch_size'])
 print(report)
 
 print("[INFO] Saving network and results")
 
-save_results(network, label_binarizer, results, report, SEED, IMAGE_SIZE, BATCH_SIZE, EPOCHS, AUGMENTATION)
+save_results(network, label_binarizer, results, report, args)
 
 print("[INFO] Saving completed!")
 print("[INFO] Closing program...")

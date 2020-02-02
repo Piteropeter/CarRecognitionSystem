@@ -1,17 +1,18 @@
+from keras.layers import Conv2D, BatchNormalization, MaxPooling2D
+from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras_preprocessing.image import ImageDataGenerator
 from sklearn.metrics import classification_report
-from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras.optimizers import SGD
+from zipfile import ZipFile
+from keras import models
 import matplotlib.pyplot as plt
+import tensorflow as tf
 import numpy as np
 import pickle
 import cv2
 import os
-from zipfile import ZipFile
-from keras import models
-from keras.layers import Conv2D, BatchNormalization, MaxPooling2D
-import tensorflow as tf
 
+from keras.applications import VGG16
 from keras.applications import ResNet50
 
 
@@ -40,7 +41,8 @@ def load_files(image_paths, image_size):
     for image_path in image_paths:
         image = cv2.imread(image_path)
         image = cv2.resize(image, (image_size, image_size))
-        # image = cv2.normalize(image, norm_type=) TODO: ADD IMAGE NORMALIZATION (AND MAYBE HISTORGRAM EQUALIZATION)
+        image = cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
+
         data.append(image)
         directory = image_path.split('/')[-1]
         label = directory.split('_')[0]
@@ -52,52 +54,54 @@ def load_files(image_paths, image_size):
 
 def create_model(image_size, label_count):
     network = models.Sequential()
-    inputShape = (image_size, image_size, 3)
-    chanDim = -1
-    # CONV => RELU => POOL layer set
-    network.add(Conv2D(32, (3, 3), padding="same", input_shape=inputShape))
+    input_shape = (image_size, image_size, 3)
+    channel_dimension = -1
+
+    network.add(Conv2D(32, (3, 3), padding="same", input_shape=input_shape))
     network.add(Activation("relu"))
-    network.add(BatchNormalization(axis=chanDim))
+    network.add(BatchNormalization(axis=channel_dimension))
+
+    network.add(Conv2D(32, (3, 3), padding="same"))
+    network.add(Activation("relu"))
+    network.add(BatchNormalization(axis=channel_dimension))
     network.add(MaxPooling2D(pool_size=(2, 2)))
-    network.add(Dropout(0.25))
-    # (CONV => RELU) * 2 => POOL layer set
+    network.add(Dropout(0.125))
+
     network.add(Conv2D(64, (3, 3), padding="same"))
     network.add(Activation("relu"))
-    network.add(BatchNormalization(axis=chanDim))
+    network.add(BatchNormalization(axis=channel_dimension))
+
     network.add(Conv2D(64, (3, 3), padding="same"))
     network.add(Activation("relu"))
-    network.add(BatchNormalization(axis=chanDim))
+    network.add(BatchNormalization(axis=channel_dimension))
+    network.add(MaxPooling2D(pool_size=(2, 2)))
+    network.add(Dropout(0.125))
+
+    network.add(Conv2D(128, (3, 3), padding="same"))
+    network.add(Activation("relu"))
+    network.add(BatchNormalization(axis=channel_dimension))
+
+    network.add(Conv2D(128, (3, 3), padding="same"))
+    network.add(Activation("relu"))
+    network.add(BatchNormalization(axis=channel_dimension))
     network.add(MaxPooling2D(pool_size=(2, 2)))
     network.add(Dropout(0.25))
-    # (CONV => RELU) * 3 => POOL layer set
-    network.add(Conv2D(128, (3, 3), padding="same"))
+
+    network.add(Conv2D(256, (3, 3), padding="same"))
     network.add(Activation("relu"))
-    network.add(BatchNormalization(axis=chanDim))
-    network.add(Conv2D(128, (3, 3), padding="same"))
-    network.add(Activation("relu"))
-    network.add(BatchNormalization(axis=chanDim))
-    network.add(Conv2D(128, (3, 3), padding="same"))
-    network.add(Activation("relu"))
-    network.add(BatchNormalization(axis=chanDim))
+    network.add(BatchNormalization(axis=channel_dimension))
     network.add(MaxPooling2D(pool_size=(2, 2)))
-    network.add(Dropout(0.25))
-    # first (and only) set of FC => RELU layers
+    network.add(Dropout(0.375))
+
     network.add(Flatten())
     network.add(Dense(512))
     network.add(Activation("relu"))
     network.add(BatchNormalization())
     network.add(Dropout(0.5))
-    # softmax classifier
+
     network.add(Dense(label_count))
     network.add(Activation("softmax"))
 
-    network.compile(loss="categorical_crossentropy", optimizer=SGD(lr=0.01), metrics=["accuracy"])
-
-    return network
-
-
-def create_model2(image_size, label_count):
-    network = ResNet50(include_top=True, weights=None, classes=label_count, input_shape=(image_size, image_size, 3))
     network.compile(loss="categorical_crossentropy", optimizer=SGD(lr=0.01), metrics=["accuracy"])
 
     return network
@@ -151,6 +155,9 @@ def save_results(network, label_binarizer, results, report, args):
     plt.ylabel("Loss/Accuracy")
     plt.legend()
     plt.savefig("training_plot.png")
+
+    if args['augmentation'] is None:
+        args['augmentation'] = 0
 
     file = open("./info.json", "w")
     info_json = "{\"SEED\" : " + str(args['seed']) + \

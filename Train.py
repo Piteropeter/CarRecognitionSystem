@@ -1,3 +1,4 @@
+from keras.utils import plot_model
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 import argparse
@@ -7,12 +8,12 @@ import time
 from Functions import *
 
 argument_parser = argparse.ArgumentParser()
-argument_parser.add_argument("-p", "--path", type=str, default="VMMRdb/", help="Path to database with images")
+argument_parser.add_argument("-p", "--path", type=str, required=True, help="Path to database with images")
 argument_parser.add_argument("-s", "--seed", type=int, default=2019, help="Seed for random generator")
-argument_parser.add_argument("-i", "--image_size", type=int, default=224, help="Scales images to n*n pixels")
+argument_parser.add_argument("-i", "--image_size", type=int, default=56, help="Scales images to n*n pixels")
 argument_parser.add_argument("-b", "--batch_size", type=int, default=32, help="Batch size")
 argument_parser.add_argument("-e", "--epochs", type=int, default=20, help="Epochs count")
-argument_parser.add_argument("-a", "--augmentation", type=int, default=1, help="Turn on/off augmentation")
+argument_parser.add_argument("-a", "--augmentation",  action='store_const', const=1, help="Turn on/off augmentation")
 args = vars(argument_parser.parse_args())
 
 disable_tf_warnings()
@@ -48,16 +49,17 @@ train_labels = label_binarizer.fit_transform(train_labels)
 test_labels = label_binarizer.transform(test_labels)
 
 print("[INFO] Creating model")
-network = create_model2(args['image_size'], len(label_binarizer.classes_))
+network = create_model(args['image_size'], len(label_binarizer.classes_))
 
 print("[INFO] Training network")
 network_training_start = time.time()
-results = train_network(network, train_images, test_images, train_labels, test_labels, args)
+results = train_network(network, train_images, test_images,
+                        train_labels, test_labels, args)
 
 print("[INFO] Training completed!")
 print("[INFO]      Took " + str(round(time.time() - network_training_start, 2)) + " s")
-print("[INFO] Evaluating network")
 
+print("[INFO] Evaluating network")
 report = get_classification_report(network, label_binarizer, test_images, test_labels, args['batch_size'])
 print(report)
 

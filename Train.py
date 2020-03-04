@@ -5,7 +5,7 @@ import argparse
 import random
 import time
 
-from Functions import *
+from src.Functions import *
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument("-p", "--path", type=str, required=True, help="Path to database with images")

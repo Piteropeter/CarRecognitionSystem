@@ -107,6 +107,20 @@ def create_model(image_size, label_count):
     return network
 
 
+def create_model2(image_size, label_count):
+    network = ResNet50(include_top=True, weights=None, classes=label_count, input_shape=(image_size, image_size, 3))
+    network.compile(loss="categorical_crossentropy", optimizer=SGD(lr=0.01), metrics=["accuracy"])
+
+    return network
+
+
+def create_model3(image_size, label_count):
+    network = VGG16(include_top=True, weights=None, classes=label_count, input_shape=(image_size, image_size, 3))
+    network.compile(loss="categorical_crossentropy", optimizer=SGD(lr=0.01), metrics=["accuracy"])
+
+    return network
+
+
 def train_network(network, train_images, test_images, train_labels, test_labels, args):
     if args['augmentation']:
         aug = ImageDataGenerator(rotation_range=20, width_shift_range=0.1, height_shift_range=0.1, shear_range=0.2,

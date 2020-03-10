@@ -116,3 +116,8 @@ classification_report.txt
 info.json
 model
 model.zip
+model_*
+*.png
+*.webp
+old/
+Test_data.xlsx

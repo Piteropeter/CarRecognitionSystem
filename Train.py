@@ -13,7 +13,7 @@ argument_parser.add_argument("-s", "--seed", type=int, default=2019, help="Seed 
 argument_parser.add_argument("-i", "--image_size", type=int, default=56, help="Scales images to n*n pixels")
 argument_parser.add_argument("-b", "--batch_size", type=int, default=32, help="Batch size")
 argument_parser.add_argument("-e", "--epochs", type=int, default=20, help="Epochs count")
-argument_parser.add_argument("-a", "--augmentation",  action='store_const', const=1, help="Turn on/off augmentation")
+argument_parser.add_argument("-a", "--augmentation",  action='store_const', const=1, help="Turn on augmentation")
 args = vars(argument_parser.parse_args())
 
 disable_tf_warnings()
